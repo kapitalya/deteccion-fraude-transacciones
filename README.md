@@ -2,20 +2,19 @@
 
 > Notebook y script de Python que comparan detección de anomalías y clasificación supervisada con balanceo de clases, y eligen el umbral por costo de negocio. Para analistas y estudiantes de machine learning aplicado a fintech.
 
-**Estado (2026-11-17):** PARCIAL — `modelo_fraude.py` y `deteccion_fraude.ipynb` presentes; el dataset (`creditcard.csv`) no está en el repo; el notebook no tiene outputs guardados, así que las tablas de resultados no son verificables; falta `requirements.txt`, `.gitignore` y licencia.
+**Estado (2026-11-17):** PARCIAL — `modelo_fraude.py` y `deteccion_fraude.ipynb` presentes; el dataset (`datos/creditcard.csv`) no está en el repo; el notebook no tiene outputs guardados, así que las tablas de resultados no son verificables; falta `requirements.txt`, `.gitignore` y licencia.
 **Repo:** kapitalya/deteccion-fraude-transacciones · **Rama por defecto:** main · **Alias/nombres anteriores:** ninguno
 
 > Aviso: análisis educativo, no es consejo financiero ni un sistema antifraude en producción. Usa un dataset público y anonimizado.
 
 ## Qué hace
 
-- Compara Isolation Forest (no supervisado) con Random Forest y Random Forest + SMOTE (supervisado) sobre el dataset de tarjetas de Kaggle (ULB), con métricas AUC-ROC y Average Precision.
-- `modelo_fraude.py`: pipeline para entrenar (`entrenar`), evaluar (`evaluar`), elegir el umbral minimizando un costo (`_calcular_umbral_optimo`: falso positivo a $2, falso negativo al monto de la transacción), guardar el modelo y predecir una transacción (`predecir_transaccion`).
-- `deteccion_fraude.ipynb`: análisis exploratorio y comparación de modelos. Sin outputs guardados.
+- `deteccion_fraude.ipynb`: lee `datos/creditcard.csv` y compara Isolation Forest (no supervisado), regresión logística, Random Forest, Random Forest + SMOTE y submuestreo aleatorio (`RandomUnderSampler`). Describe el costo asimétrico de los errores y el umbral óptimo. Sin outputs guardados.
+- `modelo_fraude.py` (raíz): pipeline con Random Forest y SMOTE. Funciones: `cargar_y_preprocesar`, `entrenar`, `evaluar` (AUC-ROC y Average Precision), `_calcular_umbral_optimo` (umbral que minimiza el costo, con falso positivo a `COSTO_FP = 2.0` dólares), `guardar_modelo` (en `modelos/modelo_fraude.pkl`) y `predecir_transaccion`.
 
 ## Stack
 
-Python, `scikit-learn`, `imbalanced-learn` (SMOTE), `pandas`, `numpy`, `joblib`, Jupyter Notebook.
+Python. Librerías importadas: `scikit-learn` (Isolation Forest, Random Forest, regresión logística, métricas), `imbalanced-learn` (SMOTE, RandomUnderSampler), `pandas`, `numpy`, `joblib`, `scipy`, `matplotlib`, `seaborn`. Jupyter Notebook.
 
 ## Estructura
 
@@ -26,7 +25,7 @@ deteccion-fraude-transacciones/
 └── README.md
 ```
 
-`datos/`, `modelos/` e `img/` no existen en el repo: el script crea `modelos/` e `img/`; `datos/` lo crea el usuario.
+`datos/`, `modelos/` e `img/` no existen en el repo: `modelo_fraude.py` crea `modelos/` e `img/` al ejecutarse; `datos/` lo crea el usuario.
 
 ## Instalación y uso
 
@@ -35,12 +34,12 @@ git clone https://github.com/kapitalya/deteccion-fraude-transacciones
 cd deteccion-fraude-transacciones
 
 python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
-pip install numpy pandas scikit-learn imbalanced-learn joblib jupyter   # sin requirements.txt
+pip install numpy pandas scipy scikit-learn imbalanced-learn joblib matplotlib seaborn jupyter   # sin requirements.txt
 mkdir -p datos
 # Descargar creditcard.csv de Kaggle y colocarlo en datos/
 ```
 
-Dataset: Credit Card Fraud Detection (Kaggle, ULB Machine Learning Group, https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud). El archivo no se incluye en el repo.
+Dataset: Credit Card Fraud Detection (Kaggle, ULB Machine Learning Group, https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud). El archivo no se incluye en el repo; lo requieren el notebook y el script (`--datos`, por defecto `datos/creditcard.csv`).
 
 Notebook:
 
@@ -51,7 +50,7 @@ jupyter lab deteccion_fraude.ipynb
 Script (desde la raíz del repo):
 
 ```bash
-# Entrenamiento con umbral automático (por defecto: datos/creditcard.csv)
+# Entrenamiento con umbral automático
 python modelo_fraude.py --datos datos/creditcard.csv --umbral auto
 
 # Entrenamiento con umbral fijo
@@ -68,27 +67,24 @@ transaccion.update({'V1': -1.36, 'V2': -0.07, 'Amount': 149.62, 'Time': 3600})
 print(predecir_transaccion(transaccion))
 ```
 
-El README anterior mostraba una salida de ejemplo (`score` 0.0423); no hay modelo ni outputs en el repo que la respalden. Resultado no verificable en el repo.
-
 ## Variables de entorno (solo nombres)
 
 Ninguna. No hay `.env.example`.
 
 ## Pruebas y CI
 
-Sin pruebas automatizadas ni workflows de CI en el repo.
+- Sin pruebas automatizadas ni workflows de CI en el repo.
+
+### Resultados
+
+- Las tablas del README anterior (AUC-ROC ~0.95 a ~0.98 y Average Precision ~0.28 a ~0.85 según el modelo) no tienen respaldo: el notebook no tiene outputs guardados. Se retiran. Resultados no verificables en el repo; para obtenerlos, ejecutar el notebook o `modelo_fraude.py` con el dataset.
+- El ejemplo de salida de `predecir_transaccion` del README anterior (`score` 0.0423) no tiene modelo ni outputs que lo respalden. Resultado no verificable en el repo.
+- Datos del dataset (284,807 transacciones, 492 fraudes, 0.172%): coinciden con la descripción pública de Kaggle; no verificables desde el repo porque el CSV no está incluido.
+- Costo: `COSTO_FP = 2.0` está en `modelo_fraude.py`. La fórmula completa con falsos negativos valorados al monto de la transacción no se verificó línea por línea en este corte.
 
 ## Despliegue
 
 No aplica: scripts y notebooks de ejecución local.
-
-## Resultados
-
-Las tablas del README anterior (Isolation Forest, LR + SMOTE, RF + SMOTE con AUC ~0.95 a ~0.98 y Average Precision ~0.28 a ~0.85) no tienen respaldo en el repo: el notebook no tiene outputs guardados. Resultados no verificables en el repo; se retiran del README. Para obtenerlos, ejecutar el notebook o `modelo_fraude.py` con el dataset.
-
-Dato del dataset (284,807 transacciones, 492 fraudes, 0.172%): coincide con la descripción pública de Kaggle; no verificable desde el repo, porque el CSV no está incluido.
-
-El costo por falso positivo es `COSTO_FP = 2.0` en `modelo_fraude.py`. La fórmula completa de costo (falsos negativos valorados al monto de la transacción) no se verificó línea por línea en este corte.
 
 ## Estado y relaciones
 
@@ -101,7 +97,7 @@ No aplica (repositorio de análisis, sin venta). Precios y planes: fuente única
 ## Seguridad, privacidad y derechos
 
 - Sin secretos en el repo.
-- Dataset: Kaggle / ULB, con sus propios términos de uso. Sin verificar términos en este corte. Las columnas V1 a V28 están anonimizadas por PCA.
+- Dataset: Kaggle / ULB, con sus propios términos de uso; no verificados en este corte. Las columnas V1 a V28 están anonimizadas por PCA.
 - Licencia: el repo no tiene archivo LICENSE; no hay derechos de reutilización declarados.
 
 ## Convenciones de trabajo
